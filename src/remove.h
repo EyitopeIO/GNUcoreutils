@@ -73,12 +73,22 @@ struct rm_options
      restore cwd (e.g., mv) and some others do not (e.g., rm,
      in many cases).  */
   bool require_restore_cwd;
+
+  /*
+     File name specifying the files and directories to not delete
+	 inspite of the -r -f option
+  */
+  char *file_name;
+
+  bool files_to_skip_specified;
+
 };
 
 enum RM_status
 {
   /* These must be listed in order of increasing seriousness. */
-  RM_OK = 2,
+  RM_SKIP = 2,
+  RM_OK,
   RM_USER_ACCEPTED,
   RM_USER_DECLINED,
   RM_ERROR,
@@ -87,13 +97,13 @@ enum RM_status
 
 # define VALID_STATUS(S) \
   ((S) == RM_OK || (S) == RM_USER_ACCEPTED || (S) == RM_USER_DECLINED \
-   || (S) == RM_ERROR)
+   || (S) == RM_ERROR || (S) == RM_SKIP )
 
 # define UPDATE_STATUS(S, New_value)				\
   do								\
     {								\
       if ((New_value) == RM_ERROR				\
-          || ((New_value) == RM_USER_DECLINED && (S) == RM_OK))	\
+          || ((New_value) == RM_USER_DECLINED && (S) == RM_OK) || (S) == RM_SKIP)	\
         (S) = (New_value);					\
     }								\
   while (0)
