@@ -2,54 +2,16 @@
 #include <skip.h>
 #include <xfts.h>
 
-
-
 #if USE_LINKED_LIST
 static int create_link_of_files(char *const file_name);
+static gal_list_str_t *list_of_files_to_skip = nullptr;
 #endif
 static char **create_argv_of_files(char *const file_name);
 static void show_string_array(char **const array, int n_elements);
-static void create_bsearch_tree(char **const arrayp, int *flags);
 
-
-#if USE_LINKED_LIST
-static gal_list_str_t *list_of_files_to_skip = nullptr;
-#endif
-
-typedef struct bst_node
-{
-    ino64_t *file_n;
-    struct bst_node *left;
-    struct bst_node *right;
-} bst_node_t;
-
-
-// static bst_node_t *root_node = nullptr;
 
 static int nskip;					// number of files in skip file
 
-
-int initialize_skipper(struct rm_options const *x, int *flags)
-{
-
-#if USE_LINKED_LIST
-	return initialize_skipper_linklist(file_name) ? 0 : -1;
-#else
-	char **const arrayp = create_argv_of_files(x->file_name);
-	create_bsearch_tree(arrayp, flags);
-	return arrayp ? 0 : -1;
-#endif
-}
-
-void free_skip_resources(void)
-{
-
-}
-
-// int should_be_skipped(const FTSENT *const file)
-// {
-// 	return 1;
-// }
 
 
 /*
@@ -108,11 +70,6 @@ static char **create_argv_of_files(char *const file_name)
 	return argv_of_files;
 }
 
-
-static void create_bsearch_tree(char **const arrayp, int *flags)
-{
-
-}
 
 #if SKIPFILE_DEBUG_MODE
 static void show_string_array(char **const array, int n_elements)

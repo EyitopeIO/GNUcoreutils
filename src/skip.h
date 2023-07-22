@@ -67,10 +67,5 @@ static int create_link_of_files(char *const file_name);
  */
 // static int create_bst_from_files(char *const file_name);
 
-int initialize_skipper(struct rm_options const *x, int *flags);
-
-
-void free_skip_resources(void);
-
 
 #endif

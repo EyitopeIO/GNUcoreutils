@@ -607,6 +607,7 @@ rm (char *const *file, struct rm_options const *x)
 
   if (*file)
     {
+
       int bit_flags = (FTS_CWDFD
                        | FTS_NOSTAT
                        | FTS_PHYSICAL);
@@ -615,11 +616,6 @@ rm (char *const *file, struct rm_options const *x)
         bit_flags |= FTS_XDEV;
 
       FTS *fts = xfts_open (file, bit_flags, nullptr);
-
-	  printf("rm function: x.file_name: %s\n", x->file_name);
-      int skip_e = initialize_skipper(x, &bit_flags);
-      if (skip_e)
-        error (0, errno, _("could not load file: %s"), quoteaf (x->file_name));
 
       while (true)
         {
@@ -639,10 +635,10 @@ rm (char *const *file, struct rm_options const *x)
               break;
             }
 
-          printf("Searching fts_path: %s\n", ent->fts_path);
-          printf("Searching fts_name: %s\n", ent->fts_name);
-          printf("Searching ft_accpath: %s\n", ent->fts_accpath);
-          printf("--------------\n");
+          // printf("Searching fts_path: %s\n", ent->fts_path);
+          // printf("Searching fts_name: %s\n", ent->fts_name);
+          // printf("Searching ft_accpath: %s\n", ent->fts_accpath);
+          // printf("--------------\n");
 
           enum RM_status s = rm_fts (fts, ent, x);
 
