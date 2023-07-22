@@ -616,9 +616,11 @@ rm (char *const *file, struct rm_options const *x)
 
       FTS *fts = xfts_open (file, bit_flags, nullptr);
 
+	  printf("rm function: x.file_name: %s\n", x->file_name);
       int skip_e = initialize_skipper(x, &bit_flags);
       if (skip_e)
         error (0, errno, _("could not load file: %s"), quoteaf (x->file_name));
+
       while (true)
         {
           FTSENT *ent;

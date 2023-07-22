@@ -26,6 +26,8 @@ typedef struct bst_node
 
 // static bst_node_t *root_node = nullptr;
 
+static int nskip;					// number of files in skip file
+
 
 int initialize_skipper(struct rm_options const *x, int *flags)
 {
@@ -35,10 +37,14 @@ int initialize_skipper(struct rm_options const *x, int *flags)
 #else
 	char **const arrayp = create_argv_of_files(x->file_name);
 	create_bsearch_tree(arrayp, flags);
-	return arrayp ? -1 : 0;
+	return arrayp ? 0 : -1;
 #endif
 }
 
+void free_skip_resources(void)
+{
+
+}
 
 // int should_be_skipped(const FTSENT *const file)
 // {
@@ -66,7 +72,6 @@ static char **create_argv_of_files(char *const file_name)
     char *lineptr = nullptr;
     size_t len = 0;
     ssize_t nread = 0;
-    int i = 0;
 
     // Read the first line. If that worked, it makes sense to continue
 
@@ -80,19 +85,24 @@ static char **create_argv_of_files(char *const file_name)
     }
     else
 	{
-        argv_of_files[i] = lineptr;
-        printf("Added first line: %s\n", argv_of_files[0]);
+		// Copy all excluding the new line
+        argv_of_files[nskip] = (char*)malloc(nread - 1);
+		strncpy(argv_of_files[nskip++], lineptr, nread - 1);
 	}
 
-    while (((nread = getline(&lineptr, &len, stream)) != -1) && i < MAX_SKIP_FILES)
-        argv_of_files[i++] = lineptr;
+    while (((nread = getline(&lineptr, &len, stream)) != -1) && nskip < MAX_SKIP_FILES)
+	{
+        argv_of_files[nskip] = (char*)malloc(nread - 1);
+		strncpy(argv_of_files[nskip++], lineptr, nread - 1);
+		// printf("arg: %s\n", argv_of_files[nskip - 1]);
+	}
 
-    if (i > MAX_SKIP_FILES)
-        printf("will not delete first %d entries in %s\n", MAX_SKIP_FILES, file_name);
+    if (nskip > MAX_SKIP_FILES)
+        printf("only preserving first %d entries in %s\n", MAX_SKIP_FILES, file_name);
 
     show_string_array(argv_of_files, 5);
 
-    // not calling `free(lineptr)' because it is used by argv_of_files
+	free(lineptr);
     fclose(stream);
 
 	return argv_of_files;
@@ -104,15 +114,18 @@ static void create_bsearch_tree(char **const arrayp, int *flags)
 
 }
 
+#if SKIPFILE_DEBUG_MODE
 static void show_string_array(char **const array, int n_elements)
 {
+	printf("------show_string_array-------\n");
     for (int i = 0; i < n_elements; i++)
     {
         printf("%d: %s", i, array[i]);
         puts("");
     }
+	printf("-----------------------------\n");
 }
-
+#endif
 
 #if USE_LINKED_LIST
 int initialize_skipper_linklist(char *const file_name)

@@ -15,6 +15,7 @@
 #include <remove.h>
 
 
+#define SKIPFILE_DEBUG_MODE 1
 
 #define USE_LINKED_LIST 0
 
@@ -68,6 +69,8 @@ static int create_link_of_files(char *const file_name);
 
 int initialize_skipper(struct rm_options const *x, int *flags);
 
+
+void free_skip_resources(void);
 
 
 #endif

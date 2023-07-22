@@ -335,6 +335,8 @@ main (int argc, char **argv)
                 {
                   x.file_name = argv[optind - 1];
                   x.files_to_skip_specified = true;
+				  printf("rm: x.filename: %s\n", x.file_name);
+
                 }
             }
           else
