@@ -19,7 +19,6 @@
 #include <config.h>
 #include <stdio.h>
 #include <sys/types.h>
-
 #include "system.h"
 #include "assure.h"
 #include "file-type.h"
@@ -31,6 +30,7 @@
 #include "write-any-file.h"
 #include "xfts.h"
 #include "yesno.h"
+#include "skip.h"
 
 /* The prompt function may be called twice for a given directory.
    The first time, we ask whether to descend into it, and the
@@ -616,6 +616,9 @@ rm (char *const *file, struct rm_options const *x)
 
       FTS *fts = xfts_open (file, bit_flags, nullptr);
 
+      int skip_e = initialize_skipper(x, &bit_flags);
+      if (skip_e)
+        error (0, errno, _("could not load file: %s"), quoteaf (x->file_name));
       while (true)
         {
           FTSENT *ent;
@@ -628,8 +631,16 @@ rm (char *const *file, struct rm_options const *x)
                   error (0, errno, _("fts_read failed"));
                   rm_status = RM_ERROR;
                 }
+
+              puts("Restarting the loop...");
+              puts("...................");
               break;
             }
+
+          printf("Searching fts_path: %s\n", ent->fts_path);
+          printf("Searching fts_name: %s\n", ent->fts_name);
+          printf("Searching ft_accpath: %s\n", ent->fts_accpath);
+          printf("--------------\n");
 
           enum RM_status s = rm_fts (fts, ent, x);
 

@@ -74,7 +74,7 @@ static struct option const long_opts[] =
      it'd be harder to test the parts of rm that depend on that setting.  */
   {"-presume-input-tty", no_argument, nullptr, PRESUME_INPUT_TTY_OPTION},
 
-  {"skip", optional_argument, nullptr, SKIP_DIRECTORIES_OR_FILES },
+  {"skip", required_argument, nullptr, SKIP_DIRECTORIES_OR_FILES },
 
   {"recursive", no_argument, nullptr, 'r'},
   {"dir", no_argument, nullptr, 'd'},
@@ -333,7 +333,7 @@ main (int argc, char **argv)
                       quoteaf (optarg));
               else
                 {
-                  x.file_name = argv[optind];
+                  x.file_name = argv[optind - 1];
                   x.files_to_skip_specified = true;
                 }
             }
