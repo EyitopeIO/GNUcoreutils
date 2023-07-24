@@ -132,11 +132,11 @@ static int create_bsearch_tree(char *const *file_names, int fts_flags)
 	struct stat file_info;
 	for (int i = 0; i < nskip; i++)
 	{
-		/* TODO:
-        1. Allow specifying `directory' instead of `./directory'
-        2. Create tree immediately when reading files from the skip file.
-	       making argv_of_files redundant
-		*/
+        /* TODO:
+          1. Allow specifying `directory' instead of `./directory'
+          2. Create tree immediately when reading files from the skip file.
+	         making argv_of_files redundant
+        */
 		if (lstat(file_names[i], &file_info) == -1)
 		{
 			// TODO: Show warning if verbose enabled
