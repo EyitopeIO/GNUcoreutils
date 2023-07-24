@@ -377,8 +377,8 @@ src_kill_SOURCES = src/kill.c src/operand2sig.c
 src_realpath_SOURCES = src/realpath.c src/relpath.c src/relpath.h
 src_timeout_SOURCES = src/timeout.c src/operand2sig.c
 
-src_mv_SOURCES = src/mv.c src/remove.c $(copy_sources) $(selinux_sources)
-src_rm_SOURCES = src/rm.c src/remove.c
+src_mv_SOURCES = src/mv.c src/remove.c src/skip.c $(copy_sources) $(selinux_sources)
+src_rm_SOURCES = src/rm.c src/remove.c src/skip.c
 
 src_mkdir_SOURCES = src/mkdir.c src/prog-fprintf.c $(selinux_sources)
 src_rmdir_SOURCES = src/rmdir.c src/prog-fprintf.c

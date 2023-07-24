@@ -74,7 +74,7 @@ static struct option const long_opts[] =
      it'd be harder to test the parts of rm that depend on that setting.  */
   {"-presume-input-tty", no_argument, nullptr, PRESUME_INPUT_TTY_OPTION},
 
-  {"skip", optional_argument, nullptr, SKIP_DIRECTORIES_OR_FILES },
+  {"skip", required_argument, nullptr, SKIP_DIRECTORIES_OR_FILES },
 
   {"recursive", no_argument, nullptr, 'r'},
   {"dir", no_argument, nullptr, 'd'},
@@ -211,7 +211,6 @@ rm_option_init (struct rm_options *x)
   x->require_restore_cwd = false;
 
   x->file_name = nullptr;
-  x->files_to_skip_specified = false;
 }
 
 int
@@ -332,10 +331,7 @@ main (int argc, char **argv)
                       _("cannot access the file: %s"),
                       quoteaf (optarg));
               else
-                {
-                  x.file_name = argv[optind];
-                  x.files_to_skip_specified = true;
-                }
+                  x.file_name = argv[optind - 1];
             }
           else
               error (EXIT_FAILURE, 0, _("missing argument to --skip"));

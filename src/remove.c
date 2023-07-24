@@ -19,7 +19,6 @@
 #include <config.h>
 #include <stdio.h>
 #include <sys/types.h>
-
 #include "system.h"
 #include "assure.h"
 #include "file-type.h"
@@ -31,6 +30,7 @@
 #include "write-any-file.h"
 #include "xfts.h"
 #include "yesno.h"
+#include "skip.h"
 
 /* The prompt function may be called twice for a given directory.
    The first time, we ask whether to descend into it, and the
@@ -442,6 +442,7 @@ static enum RM_status
 rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
 {
   int dir_status = DS_UNKNOWN;
+  ino_t nt = ent->fts_statp->st_ino;
 
   switch (ent->fts_info)
     {
@@ -453,7 +454,11 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
           /* This is the first (pre-order) encounter with a directory
              that we cannot delete.
              Not recursive, and it's not an empty directory (if we're removing
-             them) so arrange to skip contents.  */
+             them) so arrange to skip contents.
+
+             If a file in this directory was specified as a file to be skipped
+             (e.g. with --skip-file), then we expect EISDIR as the error. This
+             error is not masked to provide a visual cue to the user. */
           int err = x->remove_empty_directories ? ENOTEMPTY : EISDIR;
           error (0, err, _("cannot remove %s"), quoteaf (ent->fts_path));
           mark_ancestor_dirs (ent);
@@ -521,6 +526,13 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
                 }
             }
         }
+#if SKIPFILE_DEBUG_MODE
+      printf("rm_fts: checking whether to skip: %s:%lu\n", ent->fts_path, nt);
+#endif
+      if (!should_be_skipped(nt)) {
+        // TODO: Tell user that we are skipping this file
+        return RM_OK;
+      }
 
       {
         enum RM_status s = prompt (fts, ent, true /*is_dir*/, x,
@@ -572,6 +584,19 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
                                    &dir_status);
         if (! (s == RM_OK || s == RM_USER_ACCEPTED))
           return s;
+#if SKIPFILE_DEBUG_MODE
+        printf("rm_fts: checking whether to skip: %s:%lu\n", ent->fts_path, nt);
+#endif
+        // TODO: Document: You couldn't read st_ino through the pointer from inside the function
+        if (!should_be_skipped(nt))
+          {
+#if SKIPFILE_DEBUG_MODE
+            printf("rm_fts: skipping that file...\n");
+#endif
+            // TODO: Show output depending on verbosity
+            return RM_OK;
+          }
+
         return excise (fts, ent, x, is_dir);
       }
 
@@ -604,19 +629,29 @@ enum RM_status
 rm (char *const *file, struct rm_options const *x)
 {
   enum RM_status rm_status = RM_OK;
+  int skipinit = 0;
 
   if (*file)
     {
-      int bit_flags = (FTS_CWDFD
-                       | FTS_NOSTAT
-                       | FTS_PHYSICAL);
+
+      int bit_flags = (FTS_CWDFD | FTS_PHYSICAL);
 
       if (x->one_file_system)
         bit_flags |= FTS_XDEV;
 
       FTS *fts = xfts_open (file, bit_flags, nullptr);
+#if SKIPFILE_DEBUG_MODE
+      for (int i = 0; i < 10; i++)
+        printf("skip file [%d]: %s\n", i, file[i]);
+#endif
+      if (x->file_name)
+        {
+          skipinit = initialize_skip(x, bit_flags);
+          if (skipinit)
+            error (0, errno, "could not initialize skip list");
+        }
 
-      while (true)
+      while (true && !skipinit)
         {
           FTSENT *ent;
 
@@ -628,6 +663,9 @@ rm (char *const *file, struct rm_options const *x)
                   error (0, errno, _("fts_read failed"));
                   rm_status = RM_ERROR;
                 }
+#if SKIPFILE_DEBUG_MODE
+              puts("fts_read: returned null so exiting the loop");
+#endif
               break;
             }
 
