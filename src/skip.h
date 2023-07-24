@@ -20,52 +20,28 @@
 #define USE_LINKED_LIST 0
 
 
-#define MAX_SKIP_FILES 64			// maximum number of files to skip
+#define MAX_SKIP_FILES 9			// maximum number of files to skip
 									// doesn't make sense to have so many files
+
+
+
+typedef struct skip_node
+{
+	ino_t inode;
+	struct skip_node *left;
+	struct skip_node *right;
+} skip_node_t;
 
 
 #if USE_LINKED_LIST
 #include <gnuastro/list.h>
-
-/*
- * Function:  initialize_skipper
- * --------------------
- *
- */
 int initialize_skipper_linklist(char *const file_name);
-
-/*
- * Function:  free_skipper
- * --------------------
- *
- */
 void free_skipper_linklist(void);
-
-
 static int create_link_of_files(char *const file_name);
-
 #endif
 
-
-/*
- * Function:  should_be_skipped
- * --------------------
- * checks if the file should not be deleted
-
- *  file: pointer to structure returned by `fts_read'
- *
- *  returns: 0 if file is to be skipped; otherwise 1
- */
-// int should_be_skipped(const FTSENT *const file);
-
-
-/*
- * Function:  create_bst_from_files
- * --------------------
- * checks if the file should not be deleted
- *
- */
-// static int create_bst_from_files(char *const file_name);
-
+skip_node_t *search_skiptree(ino_t inode);
+int initialize_skip(struct rm_options const *options, int fts_flags);
+int should_be_skipped(FTSENT *ent);
 
 #endif

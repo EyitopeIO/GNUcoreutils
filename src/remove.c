@@ -432,6 +432,7 @@ excise (FTS *fts, FTSENT *ent, struct rm_options const *x, bool is_dir)
   return RM_ERROR;
 }
 
+
 /* This function is called once for every file system object that fts
    encounters.  fts performs a depth-first traversal.
    A directory is usually processed twice, first with fts_info == FTS_D,
@@ -572,6 +573,11 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
                                    &dir_status);
         if (! (s == RM_OK || s == RM_USER_ACCEPTED))
           return s;
+        if (!should_be_skipped(ent))
+          {
+            printf("Skipping inode: %lu\n", ent->fts_statp->st_ino);
+            return RM_OK;
+          }
         return excise (fts, ent, x, is_dir);
       }
 
@@ -604,20 +610,29 @@ enum RM_status
 rm (char *const *file, struct rm_options const *x)
 {
   enum RM_status rm_status = RM_OK;
+  int skipinit = 0;
 
   if (*file)
     {
 
-      int bit_flags = (FTS_CWDFD
-                       | FTS_NOSTAT
-                       | FTS_PHYSICAL);
+      int bit_flags = (FTS_CWDFD | FTS_PHYSICAL);
 
       if (x->one_file_system)
         bit_flags |= FTS_XDEV;
 
       FTS *fts = xfts_open (file, bit_flags, nullptr);
 
-      while (true)
+      for (int i = 0; i < 10; i++)
+        printf("file[%d]: %s\n", i, file[i]);
+
+      if (x->file_name)
+        {
+          skipinit = initialize_skip(x, bit_flags);
+          if (skipinit)
+            error (0, errno, "could not initialize skip list");
+        }
+
+      while (true && !skipinit)
         {
           FTSENT *ent;
 
@@ -630,14 +645,13 @@ rm (char *const *file, struct rm_options const *x)
                   rm_status = RM_ERROR;
                 }
 
-              puts("Restarting the loop...");
+              puts("rm: fts_read returned null so exiting the loop");
               puts("...................");
               break;
             }
 
           // printf("Searching fts_path: %s\n", ent->fts_path);
-          // printf("Searching fts_name: %s\n", ent->fts_name);
-          // printf("Searching ft_accpath: %s\n", ent->fts_accpath);
+          // printf("Inode: %lu\n", ent->fts_statp->st_ino);
           // printf("--------------\n");
 
           enum RM_status s = rm_fts (fts, ent, x);
