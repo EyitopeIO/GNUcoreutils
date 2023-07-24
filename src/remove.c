@@ -432,7 +432,6 @@ excise (FTS *fts, FTSENT *ent, struct rm_options const *x, bool is_dir)
   return RM_ERROR;
 }
 
-
 /* This function is called once for every file system object that fts
    encounters.  fts performs a depth-first traversal.
    A directory is usually processed twice, first with fts_info == FTS_D,
@@ -536,7 +535,6 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
       }
 
       {
-
         enum RM_status s = prompt (fts, ent, true /*is_dir*/, x,
                                    PA_DESCEND_INTO_DIR, &dir_status);
 
@@ -642,10 +640,10 @@ rm (char *const *file, struct rm_options const *x)
         bit_flags |= FTS_XDEV;
 
       FTS *fts = xfts_open (file, bit_flags, nullptr);
-
+#if SKIPFILE_DEBUG_MODE
       for (int i = 0; i < 10; i++)
-        printf("file[%d]: %s\n", i, file[i]);
-
+        printf("skip file [%d]: %s\n", i, file[i]);
+#endif
       if (x->file_name)
         {
           skipinit = initialize_skip(x, bit_flags);
@@ -665,15 +663,11 @@ rm (char *const *file, struct rm_options const *x)
                   error (0, errno, _("fts_read failed"));
                   rm_status = RM_ERROR;
                 }
-
-              puts("rm: fts_read returned null so exiting the loop");
-              puts("...................");
+#if SKIPFILE_DEBUG_MODE
+              puts("fts_read: returned null so exiting the loop");
+#endif
               break;
             }
-
-          // printf("Searching fts_path: %s\n", ent->fts_path);
-          // printf("Inode: %lu\n", ent->fts_statp->st_ino);
-          // printf("--------------\n");
 
           enum RM_status s = rm_fts (fts, ent, x);
 

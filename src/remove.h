@@ -87,7 +87,6 @@ struct rm_options
 enum RM_status
 {
   /* These must be listed in order of increasing seriousness. */
-  RM_SKIP = 2,
   RM_OK,
   RM_USER_ACCEPTED,
   RM_USER_DECLINED,
@@ -97,13 +96,13 @@ enum RM_status
 
 # define VALID_STATUS(S) \
   ((S) == RM_OK || (S) == RM_USER_ACCEPTED || (S) == RM_USER_DECLINED \
-   || (S) == RM_ERROR || (S) == RM_SKIP )
+   || (S) == RM_ERROR)
 
 # define UPDATE_STATUS(S, New_value)				\
   do								\
     {								\
       if ((New_value) == RM_ERROR				\
-          || ((New_value) == RM_USER_DECLINED && (S) == RM_OK) || (S) == RM_SKIP)	\
+          || ((New_value) == RM_USER_DECLINED && (S) == RM_OK))	\
         (S) = (New_value);					\
     }								\
   while (0)
