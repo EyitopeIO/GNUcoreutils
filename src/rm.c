@@ -48,7 +48,8 @@ enum
   ONE_FILE_SYSTEM,
   NO_PRESERVE_ROOT,
   PRESERVE_ROOT,
-  PRESUME_INPUT_TTY_OPTION
+  PRESUME_INPUT_TTY_OPTION,
+  SKIP_DIRECTORIES_OR_FILES
 };
 
 enum interactive_type
@@ -73,6 +74,7 @@ static struct option const long_opts[] =
      it'd be harder to test the parts of rm that depend on that setting.  */
   {"-presume-input-tty", no_argument, nullptr, PRESUME_INPUT_TTY_OPTION},
 
+  {"skip", required_argument, nullptr, SKIP_DIRECTORIES_OR_FILES },
   {"recursive", no_argument, nullptr, 'r'},
   {"dir", no_argument, nullptr, 'd'},
   {"verbose", no_argument, nullptr, 'v'},
@@ -134,6 +136,10 @@ Remove (unlink) the FILE(s).\n\
 \n\
   -f, --force           ignore nonexistent files and arguments, never prompt\n\
   -i                    prompt before every removal\n\
+"), stdout);
+      fputs (_("\
+      --skip           Don't delete the file or directory if it is mentioned\n\
+                       in the file passed to this option\n\
 "), stdout);
       fputs (_("\
   -I                    prompt once before removing more than three files, or\n\
@@ -201,6 +207,8 @@ rm_option_init (struct rm_options *x)
   /* Since this program exits immediately after calling 'rm', rm need not
      expend unnecessary effort to preserve the initial working directory.  */
   x->require_restore_cwd = false;
+
+  x->file_name = nullptr;
 }
 
 int
@@ -311,6 +319,20 @@ main (int argc, char **argv)
 
         case PRESUME_INPUT_TTY_OPTION:
           x.stdin_tty = true;
+          break;
+
+        case SKIP_DIRECTORIES_OR_FILES:
+          if (optarg)
+            {
+              if (! access(optarg, R_OK) == 0)
+                error (EXIT_FAILURE, 0,
+                      _("cannot access the file: %s"),
+                      quoteaf (optarg));
+              else
+                  x.file_name = argv[optind - 1];
+            }
+          else
+              error (EXIT_FAILURE, 0, _("missing argument to --skip"));
           break;
 
         case 'v':

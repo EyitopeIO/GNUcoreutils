@@ -73,12 +73,19 @@ struct rm_options
      restore cwd (e.g., mv) and some others do not (e.g., rm,
      in many cases).  */
   bool require_restore_cwd;
+
+  /*
+     File name specifying the files and directories to not delete
+	 regardless of the -r -f option
+  */
+  char *file_name;
+
 };
 
 enum RM_status
 {
   /* These must be listed in order of increasing seriousness. */
-  RM_OK = 2,
+  RM_OK,
   RM_USER_ACCEPTED,
   RM_USER_DECLINED,
   RM_ERROR,
