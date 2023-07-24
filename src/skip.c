@@ -14,7 +14,9 @@ static int create_link_of_files(char *const file_name);
 static gal_list_str_t *list_of_files_to_skip = nullptr;
 #endif
 static char *const *create_argv_of_files(char *const file_name);
+#if SKIPFILE_DEBUG_MODE
 static void show_string_array(char *const *array, int n_elements);
+#endif
 static int create_bsearch_tree(char *const *file_names, int fts_flags);
 static skip_node_t *insert_node(skip_node_t *root_node, ino_t inode);
 static skip_node_t *search_node(skip_node_t *root_node, ino_t inode);
@@ -138,7 +140,6 @@ static int create_bsearch_tree(char *const *file_names, int fts_flags)
 		if (lstat(file_names[i], &file_info) == -1)
 		{
 			// TODO: Show warning if verbose enabled
-			perror("File not found");
 			rval = -1;
 		}
 		else

@@ -16,7 +16,7 @@
 #include <remove.h>
 
 
-#define SKIPFILE_DEBUG_MODE 1
+#define SKIPFILE_DEBUG_MODE 0
 
 #define USE_LINKED_LIST 0
 

@@ -76,11 +76,9 @@ struct rm_options
 
   /*
      File name specifying the files and directories to not delete
-	 inspite of the -r -f option
+	 regardless of the -r -f option
   */
   char *file_name;
-
-  bool files_to_skip_specified;
 
 };
 

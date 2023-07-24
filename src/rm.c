@@ -75,7 +75,6 @@ static struct option const long_opts[] =
   {"-presume-input-tty", no_argument, nullptr, PRESUME_INPUT_TTY_OPTION},
 
   {"skip", required_argument, nullptr, SKIP_DIRECTORIES_OR_FILES },
-
   {"recursive", no_argument, nullptr, 'r'},
   {"dir", no_argument, nullptr, 'd'},
   {"verbose", no_argument, nullptr, 'v'},
@@ -139,9 +138,8 @@ Remove (unlink) the FILE(s).\n\
   -i                    prompt before every removal\n\
 "), stdout);
       fputs (_("\
-      --skip           Don't delete the file or directory if it exists\n\
-                       Consequently, -r anf -f may have remnants if this\n\
-					   argument is specified\n\
+      --skip           Don't delete the file or directory if it is mentioned\n\
+                       in the file passed to this option\n\
 "), stdout);
       fputs (_("\
   -I                    prompt once before removing more than three files, or\n\
