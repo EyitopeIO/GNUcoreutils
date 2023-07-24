@@ -81,7 +81,7 @@ static skip_node_t *search_node(skip_node_t *root_node, ino_t inode)
 }
 
 /*
-* API: search_skiptree
+* API: should_be_skipped
 * --------------------
 */
 int should_be_skipped(ino_t inode)
@@ -132,11 +132,11 @@ static int create_bsearch_tree(char *const *file_names, int fts_flags)
 	struct stat file_info;
 	for (int i = 0; i < nskip; i++)
 	{
-		/* TODO:
-		1. Allow specifying `directory' instead of `./directory'
-		2. Create tree immediately when reading files from the skip file.
-	       making argv_of_files redundant
-		*/
+        /* TODO:
+          1. Allow specifying `directory' instead of `./directory'
+          2. Create tree immediately when reading files from the skip file.
+	         making argv_of_files redundant
+        */
 		if (lstat(file_names[i], &file_info) == -1)
 		{
 			// TODO: Show warning if verbose enabled
@@ -174,7 +174,7 @@ static char *const *create_argv_of_files(char *const file_name)
     static char *argv_of_files[MAX_SKIP_FILES] = {nullptr};
 
     FILE *stream = fopen(file_name, "r");
-	if (stream == nullptr)
+    if (stream == nullptr)
     {
 		perror("Could not open file passed to --skip");
         return nullptr;
@@ -279,7 +279,7 @@ static int create_link_of_files(char *const file_name)
 
     gal_list_str_print(list_of_files_to_skip);
 
-    // Read and allocate 	FILE *stream = fopen(file_name, "r");
+    // Read and allocate
 	if (stream == nullptr)
     {
         return -1;
