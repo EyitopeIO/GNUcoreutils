@@ -443,6 +443,7 @@ static enum RM_status
 rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
 {
   int dir_status = DS_UNKNOWN;
+  ino_t nt = ent->fts_statp->st_ino;
 
   switch (ent->fts_info)
     {
@@ -454,7 +455,11 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
           /* This is the first (pre-order) encounter with a directory
              that we cannot delete.
              Not recursive, and it's not an empty directory (if we're removing
-             them) so arrange to skip contents.  */
+             them) so arrange to skip contents.
+
+             If a file in this directory was specified as a file to be skipped
+             (e.g. with --skip-file), then we expect EISDIR as the error. This
+             error is not masked to provide a visual cue to the user. */
           int err = x->remove_empty_directories ? ENOTEMPTY : EISDIR;
           error (0, err, _("cannot remove %s"), quoteaf (ent->fts_path));
           mark_ancestor_dirs (ent);
@@ -522,8 +527,16 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
                 }
             }
         }
+#if SKIPFILE_DEBUG_MODE
+      printf("rm_fts: checking whether to skip: %s:%lu\n", ent->fts_path, nt);
+#endif
+      if (!should_be_skipped(nt)) {
+        // TODO: Tell user that we are skipping this file
+        return RM_OK;
+      }
 
       {
+
         enum RM_status s = prompt (fts, ent, true /*is_dir*/, x,
                                    PA_DESCEND_INTO_DIR, &dir_status);
 
@@ -573,11 +586,19 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
                                    &dir_status);
         if (! (s == RM_OK || s == RM_USER_ACCEPTED))
           return s;
-        if (!should_be_skipped(ent))
+#if SKIPFILE_DEBUG_MODE
+        printf("rm_fts: checking whether to skip: %s:%lu\n", ent->fts_path, nt);
+#endif
+        // TODO: Document: You couldn't read st_ino through the pointer from inside the function
+        if (!should_be_skipped(nt))
           {
-            printf("Skipping inode: %lu\n", ent->fts_statp->st_ino);
+#if SKIPFILE_DEBUG_MODE
+            printf("rm_fts: skipping that file...\n");
+#endif
+            // TODO: Show output depending on verbosity
             return RM_OK;
           }
+
         return excise (fts, ent, x, is_dir);
       }
 

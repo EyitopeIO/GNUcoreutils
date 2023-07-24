@@ -3,7 +3,7 @@
 #include <xfts.h>
 
 
-static skip_node_t *bst_global_root_node = nullptr;	// binary search tree node
+static skip_node_t bst_global_root_node;	// binary search tree node
 
 static int nskip;					// number of files in skip file
 
@@ -38,6 +38,7 @@ static skip_node_t *insert_node(skip_node_t *root_node, ino_t inode)
 		root_node->right = insert_node(root_node->right, inode);
 
 	return root_node;
+
 }
 
 
@@ -46,30 +47,34 @@ static skip_node_t *search_node(skip_node_t *root_node, ino_t inode)
 	if (root_node == nullptr)
 		return nullptr;
 
-	if (root_node->inode == inode)
+	if (inode == root_node->inode)
 		return root_node;
 
 	if (inode < root_node->inode)
 		return search_node(root_node->left, inode);
 
 	return search_node(root_node->right, inode);
+
 }
 
-int should_be_skipped(FTSENT *ent)
+int should_be_skipped(ino_t inode)
 {
-	if (ent == nullptr)
-		return -1;
 
-	skip_node_t *node = search_node(bst_global_root_node, ent->fts_statp->st_ino);
+	// printf("should_be_skipped: %lu\n", ent->fts_statp->st_ino);
+	skip_node_t *node = search_node(&bst_global_root_node, inode);
 	if (node == nullptr)
+	{
+		// TODO: Print warning if verbose enabled
+#if SKIPFILE_DEBUG_MODE
+		printf("should_be_skipped: node with inode %lu not in skiptree\n", inode);
+#endif
 		return -1;
-
+	}
 	return 0;
 }
 
 int initialize_skip(const struct rm_options *options, int fts_flags)
 {
-	printf("initialize_skip...\n");
 	char *const *files = create_argv_of_files(options->file_name);
 	int bst = create_bsearch_tree(files, fts_flags);
 	show_string_array(files, 5);
@@ -93,8 +98,14 @@ static int create_bsearch_tree(char *const *file_names, int fts_flags)
 		else
 		{
 			// TODO: Show note if verbose enabled
-			insert_node(bst_global_root_node, file_info.st_ino);
-			printf("inserted node for: %s and inod=%lu\n", file_names[i], file_info.st_ino);
+			insert_node(&bst_global_root_node, file_info.st_ino);
+#if SKIPFILE_DEBUG_MODE
+			printf("-----------------------------\n");
+			printf("create_bsearch_tree: inserting node\n\
+path: %s\n\
+inode:%lu\n", file_names[i], file_info.st_ino);
+			puts("");
+#endif
 		}
 	}
 

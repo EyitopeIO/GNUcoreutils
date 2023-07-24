@@ -5,6 +5,7 @@
 #include <config.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <inttypes.h>
 #include <fts.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,6 +43,6 @@ static int create_link_of_files(char *const file_name);
 
 skip_node_t *search_skiptree(ino_t inode);
 int initialize_skip(struct rm_options const *options, int fts_flags);
-int should_be_skipped(FTSENT *ent);
+int should_be_skipped(ino_t inode);
 
 #endif
