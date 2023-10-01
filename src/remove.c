@@ -527,7 +527,7 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
                 }
             }
         }
-#if SKIPFILE_DEBUG_MODE
+#ifdef SKIPFILE_DEBUG_MODE
       printf("rm_fts: checking whether to skip: %s:%lu\n", ent->fts_path, nt);
 #endif
       if (!should_be_skipped(nt)) {
@@ -585,13 +585,13 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
                                    &dir_status);
         if (! (s == RM_OK || s == RM_USER_ACCEPTED))
           return s;
-#if SKIPFILE_DEBUG_MODE
+#ifdef SKIPFILE_DEBUG_MODE
         printf("rm_fts: checking whether to skip: %s:%lu\n", ent->fts_path, nt);
 #endif
         // TODO: Document: You couldn't read st_ino through the pointer from inside the function
         if (!should_be_skipped(nt))
           {
-#if SKIPFILE_DEBUG_MODE
+#ifdef SKIPFILE_DEBUG_MODE
             printf("rm_fts: skipping that file...\n");
 #endif
             // TODO: Show output depending on verbosity
@@ -641,7 +641,7 @@ rm (char *const *file, struct rm_options const *x)
         bit_flags |= FTS_XDEV;
 
       FTS *fts = xfts_open (file, bit_flags, nullptr);
-#if SKIPFILE_DEBUG_MODE
+#ifdef SKIPFILE_DEBUG_MODE
       for (int i = 0; i < 10; i++)
         printf("skip file [%d]: %s\n", i, file[i]);
 #endif
@@ -664,7 +664,7 @@ rm (char *const *file, struct rm_options const *x)
                   error (0, errno, _("fts_read failed"));
                   rm_status = RM_ERROR;
                 }
-#if SKIPFILE_DEBUG_MODE
+#ifdef SKIPFILE_DEBUG_MODE
               puts("fts_read: returned null so exiting the loop");
 #endif
               break;

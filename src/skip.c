@@ -14,7 +14,7 @@ static int create_link_of_files(char *const file_name);
 static gal_list_str_t *list_of_files_to_skip = nullptr;
 #endif
 static char *const *create_argv_of_files(char *const file_name);
-#if SKIPFILE_DEBUG_MODE
+#ifdef SKIPFILE_DEBUG_MODE
 static void show_string_array(char *const *array, int n_elements);
 #endif
 static int create_bsearch_tree(char *const *file_names, int fts_flags);
@@ -90,7 +90,7 @@ int should_be_skipped(ino_t inode)
 	if (node == nullptr)
 	{
 		// TODO: Tell user you're skipping this file if verbose enabled
-#if SKIPFILE_DEBUG_MODE
+#ifdef SKIPFILE_DEBUG_MODE
 		printf("should_be_skipped: node with inode %lu not in skiptree\n", inode);
 #endif
 		return -1;
@@ -107,10 +107,11 @@ int initialize_skip(const struct rm_options *options, int fts_flags)
 {
 	char *const *files = create_argv_of_files(options->file_name);
 	int bst = create_bsearch_tree(files, fts_flags);
-#if SKIPFILE_DEBUG_MODE
+	printf("bst is: %d\n", bst);
+#ifdef SKIPFILE_DEBUG_MODE
 	show_string_array(files, 5);
 #endif
-	return (files && bst) ? 0 : -1;
+	return (files && !bst) ? 0 : -1;
 }
 
 
@@ -145,7 +146,7 @@ static int create_bsearch_tree(char *const *file_names, int fts_flags)
 		else
 		{
 			insert_node(&bst_global_root_node, file_info.st_ino);
-#if SKIPFILE_DEBUG_MODE
+#ifdef SKIPFILE_DEBUG_MODE
 			printf("-----------------------------\n");
 			printf("create_bsearch_tree: inserting node\n\
 path: %s\n\
@@ -219,7 +220,7 @@ static char *const *create_argv_of_files(char *const file_name)
 }
 
 
-#if SKIPFILE_DEBUG_MODE
+#ifdef SKIPFILE_DEBUG_MODE
 static void show_string_array(char *const *array, int n_elements)
 {
 	printf("------show_string_array-------\n");
@@ -251,7 +252,7 @@ static int create_link_of_files(char *const file_name)
 	FILE *stream = fopen(file_name, "r");
 	if (stream == nullptr)
     {
-#if SKIPFILE_DEBUG_MODE
+#ifdef SKIPFILE_DEBUG_MODE
 		puts("create_link_of_files: Could not open file");
 #endif
 		// TODO: Print this if verbose
@@ -269,7 +270,7 @@ static int create_link_of_files(char *const file_name)
     {
         free(lineptr);
         fclose(stream);
-#if SKIPFILE_DEBUG_MODE
+#ifdef SKIPFILE_DEBUG_MODE
         puts("create_link_of_files: could not allocate memory");
 #endif
         return -1;
