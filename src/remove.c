@@ -528,7 +528,7 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
             }
         }
 #ifdef SKIPFILE_DEBUG_MODE
-      printf("rm_fts: checking whether to skip: %s:%lu\n", ent->fts_path, nt);
+      fprintf(stderr, "rm_fts: checking whether to skip: %s:%lu\n", ent->fts_path, nt);
 #endif
       if (!should_be_skipped(nt)) {
         // TODO: Tell user that we are skipping this file
@@ -586,13 +586,13 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
         if (! (s == RM_OK || s == RM_USER_ACCEPTED))
           return s;
 #ifdef SKIPFILE_DEBUG_MODE
-        printf("rm_fts: checking whether to skip: %s:%lu\n", ent->fts_path, nt);
+        fprintf(stderr, "rm_fts: checking whether to skip: %s:%lu\n", ent->fts_path, nt);
 #endif
         // TODO: Document: You couldn't read st_ino through the pointer from inside the function
         if (!should_be_skipped(nt))
           {
 #ifdef SKIPFILE_DEBUG_MODE
-            printf("rm_fts: skipping that file...\n");
+            fprintf(stderr, "rm_fts: skipping that file...\n");
 #endif
             // TODO: Show output depending on verbosity
             return RM_OK;
@@ -643,7 +643,7 @@ rm (char *const *file, struct rm_options const *x)
       FTS *fts = xfts_open (file, bit_flags, nullptr);
 #ifdef SKIPFILE_DEBUG_MODE
       for (int i = 0; i < 10; i++)
-        printf("skip file [%d]: %s\n", i, file[i]);
+        fprintf(stderr, "skip file [%d]: %s\n", i, file[i]);
 #endif
       if (x->file_name)
         {
@@ -665,7 +665,7 @@ rm (char *const *file, struct rm_options const *x)
                   rm_status = RM_ERROR;
                 }
 #ifdef SKIPFILE_DEBUG_MODE
-              puts("fts_read: returned null so exiting the loop");
+              fprintf(stderr, "fts_read: returned null so exiting the loop");
 #endif
               break;
             }
