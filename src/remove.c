@@ -641,7 +641,6 @@ rm (char *const *file, struct rm_options const *x)
         bit_flags |= FTS_XDEV;
 
       FTS *fts = xfts_open (file, bit_flags, nullptr);
-
       if (x->file_name)
         {
           skipinit = initialize_skip(x->file_name, bit_flags);

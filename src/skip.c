@@ -76,9 +76,9 @@ int should_be_skipped(ino_t inode)
 	if (!node)
 	  {
 #ifdef SKIPFILE_DEBUG_MODE
-		fprintf(stderr, "should_be_skipped: node with inode %lu not in skiptree\n", inode);
+		  fprintf(stderr, "should_be_skipped: node with inode %lu not in skiptree\n", inode);
 #endif
-		return -1;
+		  return -1;
 	  }
 	return 0;
 }
@@ -87,9 +87,9 @@ int should_be_skipped(ino_t inode)
    for the files specified in the skip file */
 int initialize_skip(char *filename, int fts_flags)
 {
-	int bst = create_bsearch_tree(filename, fts_flags);
+  int bst = create_bsearch_tree(filename, fts_flags);
   fprintf(stderr, "initialize_skip: bst created: %d\n", bst);
-	return !bst ? 0 : -1;
+  return !bst ? 0 : -1;
 }
 
 /* Reads skip file and create a binary search tree out of their inodes */
@@ -97,7 +97,6 @@ static int create_bsearch_tree(char *skipfile, int fts_flags)
 {
   struct stat file_info;
   int rval = 0;
-  int nskip = MAX_SKIP_FILES;
 
   FILE *stream = fopen(skipfile, "r");
   if (!stream)
@@ -111,43 +110,52 @@ static int create_bsearch_tree(char *skipfile, int fts_flags)
   char *lineptr = nullptr;
   size_t len = 0;
   ssize_t nread = 0;
+  int nskip = 0;
 
   while (((nread = getline(&lineptr, &len, stream)) != -1))
-  {
+    {
+      if (lineptr[nread - 1] == '\n')
+        lineptr[nread - 1] = '\0'; /* Remove the terminating newline.
+                                      The last character may be EOF
+                                      instead of newline */
 
-    if (nskip > MAX_SKIP_FILES)
-      {
-        fprintf(stderr, "too many files in skip file (max=%d)\n", MAX_SKIP_FILES);
-        rval = -1;
-        break;
-      }
+      if (!strcmp(lineptr, "."))   /* `.' is interpreted by the shell.
+                                      Plus it doesn't make sense to
+                                      `rm -rf ./` and then skip `./' */
+        {
+          fprintf(stderr, "`.' found in skipfile. Nothing to do\n");
+          rval = -1;
+          break;
+        }
 
-    lineptr[nread - 1] = '\0'; /* Remove the newline. Last character is
-                                  the terminating null byte */
+      if (nskip > MAX_SKIP_FILES)
+        {
+          fprintf(stderr, "too many files in skip file (max=%d)\n", MAX_SKIP_FILES);
+          rval = -1;
+          break;
+        }
 
-    if (!strcmp(lineptr, "."))
-      {
-        fprintf(stderr, "`.' found in skipfile. Nothing to do\n");
-        rval = -1;
-        break;
-      }
-
-    if (lstat(lineptr, &file_info) == -1)
-      {
-#ifdef SKIPFILE_DEBUG_MODE
-        fprintf(stderr,"create_bsearch_tree: could not stat file %s\n", lineptr);
-#endif
-      }
-      insert_node(&bst_global_root_node, file_info.st_ino);
-      nskip++;
-#ifdef SKIPFILE_DEBUG_MODE
-      fprintf(stderr, "-----------------------------\n");
-      fprintf(stderr,
-"create_bsearch_tree: inserting node\n\
-path: %s\n\
-inode:%lu\n\n", lineptr, file_info.st_ino);
-#endif
-  }
+      if (lstat(lineptr, &file_info) == -1)
+        {
+          rval = -1;
+          break;
+  #ifdef SKIPFILE_DEBUG_MODE
+          fprintf(stderr,"create_bsearch_tree: could not stat file %s\n", lineptr);
+  #endif
+        }
+      else
+        {
+          insert_node(&bst_global_root_node, file_info.st_ino);
+          nskip++;
+  #ifdef SKIPFILE_DEBUG_MODE
+        fprintf(stderr, "-----------------------------\n");
+        fprintf(stderr,
+  "create_bsearch_tree: inserting node\n\
+  path: %s\n\
+  inode:%lu\n\n", lineptr, file_info.st_ino);
+  #endif
+        }
+    }
 
   free(lineptr);
   return rval;
