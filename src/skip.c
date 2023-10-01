@@ -1,49 +1,49 @@
+/* skip.c -- core functions for ignoring files/directoeries to be removed
+   Copyright (C) 1988-2023 Free Software Foundation, Inc.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
+
+/* Written by Eyitope Adelowo  */
 
 #include <skip.h>
 #include <xfts.h>
 
 
-static skip_node_t bst_global_root_node;	// binary search tree node
+static skip_node_t bst_global_root_node;
 
-static int nskip;					// number of entries in skip file
-
-
-
-#if USE_LINKED_LIST
-static int create_link_of_files(char *const file_name);
-static gal_list_str_t *list_of_files_to_skip = nullptr;
-#endif
-static char *const *create_argv_of_files(char *const file_name);
-#if SKIPFILE_DEBUG_MODE
-static void show_string_array(char *const *array, int n_elements);
-#endif
-static int create_bsearch_tree(char *const *file_names, int fts_flags);
+static int create_bsearch_tree(char *skipfile, int fts_flags);
 static skip_node_t *insert_node(skip_node_t *root_node, ino_t inode);
 static skip_node_t *search_node(skip_node_t *root_node, ino_t inode);
 
-
-
-/*
-* Function:  insert_node
-* --------------------
-* Inserts a node with a given inode in a binary search tree
-*
-* root_node: pointer to root node of binary search tree
-* inode: inode of node to insert
-*
-* returns: pointer to root node of binary search tree
-*
-*/
+/* Insert node into binary search tree */
 static skip_node_t *insert_node(skip_node_t *root_node, ino_t inode)
 {
-	if (root_node == nullptr)
-	{
-		root_node = (skip_node_t*)malloc(sizeof(skip_node_t));
-		root_node->inode = inode;
-		root_node->left = nullptr;
-		root_node->right = nullptr;
-		return root_node;
-	}
+	if (!root_node)
+	  {
+      root_node = (skip_node_t*)malloc(sizeof(skip_node_t));
+      if (!root_node)
+        {
+#ifdef SKIPFILE_DEBUG_MODE
+          fprintf(stderr, "insert_node: could not allocate memory\n");
+#endif
+          return nullptr;
+        }
+      root_node->inode = inode;
+      root_node->left = nullptr;
+      root_node->right = nullptr;
+      return root_node;
+	  }
 
 	if (inode < root_node->inode)
 		root_node->left = insert_node(root_node->left, inode);
@@ -51,23 +51,12 @@ static skip_node_t *insert_node(skip_node_t *root_node, ino_t inode)
 		root_node->right = insert_node(root_node->right, inode);
 
 	return root_node;
-
 }
 
-/*
-* Function:  search_node
-* --------------------
-* Searches for a node with a given inode in a binary search tree
-*
-* root_node: pointer to root node of binary search tree
-* inode: inode of node to search for
-*
-* returns: pointer to node with given inode if found, nullptr otherwise
-*
-*/
+/* Search for node in binary search tree */
 static skip_node_t *search_node(skip_node_t *root_node, ino_t inode)
 {
-	if (root_node == nullptr)
+	if (!root_node)
 		return nullptr;
 
 	if (inode == root_node->inode)
@@ -77,231 +66,97 @@ static skip_node_t *search_node(skip_node_t *root_node, ino_t inode)
 		return search_node(root_node->left, inode);
 
 	return search_node(root_node->right, inode);
-
 }
 
-/*
-* API: should_be_skipped
-* --------------------
-*/
+/* Returns true if a the inode of a file in the skip list should not be
+   removed. Of course removing the inode means deleting the file */
 int should_be_skipped(ino_t inode)
 {
 	skip_node_t *node = search_node(&bst_global_root_node, inode);
-	if (node == nullptr)
-	{
-		// TODO: Tell user you're skipping this file if verbose enabled
-#if SKIPFILE_DEBUG_MODE
-		printf("should_be_skipped: node with inode %lu not in skiptree\n", inode);
+	if (!node)
+	  {
+#ifdef SKIPFILE_DEBUG_MODE
+		  fprintf(stderr, "should_be_skipped: node with inode %lu not in skiptree\n", inode);
 #endif
-		return -1;
-	}
+		  return -1;
+	  }
 	return 0;
 }
 
-
-/*
-* API: initialize_skip
-* --------------------
-*/
-int initialize_skip(const struct rm_options *options, int fts_flags)
+/* Setup the binary search tree for the files specified in the skip
+   for the files specified in the skip file */
+int initialize_skip(char *filename, int fts_flags)
 {
-	char *const *files = create_argv_of_files(options->file_name);
-	int bst = create_bsearch_tree(files, fts_flags);
-#if SKIPFILE_DEBUG_MODE
-	show_string_array(files, 5);
-#endif
-	return (files && bst) ? 0 : -1;
+  int bst = create_bsearch_tree(filename, fts_flags);
+  fprintf(stderr, "initialize_skip: bst created: %d\n", bst);
+  return !bst ? 0 : -1;
 }
 
-
-
-/*
- * Function:  create_bsearch_tree
- * --------------------
- * Creates a binary search tree using the inodes of the files  specified in argument
- * to `--skip'
- *
- * file_names: pointer to array of strings containing list files
- * specifiesd in file_name
- *
- * returns: 0 on success, -1 on failure
- */
-static int create_bsearch_tree(char *const *file_names, int fts_flags)
+/* Reads skip file and create a binary search tree out of their inodes */
+static int create_bsearch_tree(char *skipfile, int fts_flags)
 {
-	int rval = 0;
-	struct stat file_info;
-	for (int i = 0; i < nskip; i++)
-	{
-        /* TODO:
-          1. Allow specifying `directory' instead of `./directory'
-          2. Create tree immediately when reading files from the skip file.
-	         making argv_of_files redundant
-        */
-		if (lstat(file_names[i], &file_info) == -1)
-		{
-			// TODO: Show warning if verbose enabled
-			rval = -1;
-		}
-		else
-		{
-			insert_node(&bst_global_root_node, file_info.st_ino);
-#if SKIPFILE_DEBUG_MODE
-			printf("-----------------------------\n");
-			printf("create_bsearch_tree: inserting node\n\
-path: %s\n\
-inode:%lu\n", file_names[i], file_info.st_ino);
-			puts("");
-#endif
-		}
-	}
-	return rval;
-}
+  struct stat file_info;
+  int rval = 0;
 
-
-/*
- * Function:  create_argv_of_files
- * --------------------
- * Creates an array of strings from a file containing a list of
- * to not remove in `rm_fts' function in `remove.c'
- *
- * file_name: pointer to file name where user specified files to skip
- *
- * returns: pointer to array of char pointers containing list files
- * specifiesd in file_name
- */
-static char *const *create_argv_of_files(char *const file_name)
-{
-    static char *argv_of_files[MAX_SKIP_FILES] = {nullptr};
-
-    FILE *stream = fopen(file_name, "r");
-    if (stream == nullptr)
+  FILE *stream = fopen(skipfile, "r");
+  if (!stream)
     {
-		perror("Could not open file passed to --skip");
-        return nullptr;
-    }
-    char *lineptr = nullptr;
-    size_t len = 0;
-    ssize_t nread = 0;
-	ssize_t cpysize = 0;
-
-    // Read the first line. If that worked, it makes sense to continue
-    nread = getline(&lineptr, &len, stream);
-    if (nread == -1)
-    {
-        free(lineptr);
-        fclose(stream);
-        return nullptr;
-    }
-    else
-	{
-		// Copy all excluding the new line
-		cpysize = sizeof(char) * (nread - 1);
-        argv_of_files[nskip] = (char*)malloc(cpysize);
-		memcpy(argv_of_files[nskip], lineptr, nread - 1);
-		argv_of_files[nskip++][nread - 1] = '\0';
-	}
-
-    while (((nread = getline(&lineptr, &len, stream)) != -1) && nskip < MAX_SKIP_FILES)
-	{
-		cpysize = sizeof(char) * (nread - 1); // all minus the new line
-        argv_of_files[nskip] = (char*)malloc(cpysize);
-		memcpy(argv_of_files[nskip], lineptr, cpysize);
-		argv_of_files[nskip++][nread - 1] = '\0';
-	}
-
-    if (nskip > MAX_SKIP_FILES)
-		printf("only preserving first %d entries in %s\n", MAX_SKIP_FILES, file_name);
-
-	free(lineptr);
-    fclose(stream);
-
-	return argv_of_files;
-}
-
-
-#if SKIPFILE_DEBUG_MODE
-static void show_string_array(char *const *array, int n_elements)
-{
-	printf("------show_string_array-------\n");
-    for (int i = 0; i < n_elements; i++)
-    {
-        printf("%d: %s\n", i, array[i]);
-    }
-	printf("-----------------------------\n");
-}
+#ifdef SKIPFILE_DEBUG_MODE
+      fprintf(stderr, "create_bsearch_tree: could not open skip file\n");
 #endif
-
-#if USE_LINKED_LIST
-int initialize_skipper_linklist(char *const file_name)
-{
-    list_of_files_to_skip = nullptr;
-    return create_link_of_files(file_name);
-}
-
-
-void free_skipper_linklist(void)
-{
-    gal_list_str_free(list_of_files_to_skip, true);
-}
-
-
-static int create_link_of_files(char *const file_name)
-{
-
-	FILE *stream = fopen(file_name, "r");
-	if (stream == nullptr)
-    {
-#if SKIPFILE_DEBUG_MODE
-		puts("create_link_of_files: Could not open file");
-#endif
-		// TODO: Print this if verbose
-		perror("Could not open skip file");
-		return -1;
+      return -1;
     }
-    char *lineptr = nullptr;
-    size_t len = 0;
-    ssize_t nread = 0;
 
-    // Read the first line. If that worked, it makes sense to continue
+  char *lineptr = nullptr;
+  size_t len = 0;
+  ssize_t nread = 0;
+  int nskip = 0;
 
-    nread = getline(&lineptr, &len, stream);
-    if (nread == -1)
+  while (((nread = getline(&lineptr, &len, stream)) != -1))
     {
-        free(lineptr);
-        fclose(stream);
-#if SKIPFILE_DEBUG_MODE
-        puts("create_link_of_files: could not allocate memory");
-#endif
-        return -1;
+      if (lineptr[nread - 1] == '\n')
+        lineptr[nread - 1] = '\0'; /* Remove the terminating newline.
+                                      The last character may be EOF
+                                      instead of newline */
+
+      if (!strcmp(lineptr, "."))   /* `.' is interpreted by the shell.
+                                      Plus it doesn't make sense to
+                                      `rm -rf ./` and then skip `./' */
+        {
+          fprintf(stderr, "`.' found in skipfile. Nothing to do\n");
+          rval = -1;
+          break;
+        }
+
+      if (nskip > MAX_SKIP_FILES)
+        {
+          fprintf(stderr, "too many files in skip file (max=%d)\n", MAX_SKIP_FILES);
+          rval = -1;
+          break;
+        }
+
+      if (lstat(lineptr, &file_info) == -1)
+        {
+          rval = -1;
+          break;
+  #ifdef SKIPFILE_DEBUG_MODE
+          fprintf(stderr,"create_bsearch_tree: could not stat file %s\n", lineptr);
+  #endif
+        }
+      else
+        {
+          insert_node(&bst_global_root_node, file_info.st_ino);
+          nskip++;
+  #ifdef SKIPFILE_DEBUG_MODE
+        fprintf(stderr, "-----------------------------\n");
+        fprintf(stderr,
+  "create_bsearch_tree: inserting node\n\
+  path: %s\n\
+  inode:%lu\n\n", lineptr, file_info.st_ino);
+  #endif
+        }
     }
-    else
-        gal_list_str_add(&list_of_files_to_skip, lineptr, nread);
 
-    gal_list_str_print(list_of_files_to_skip);
-
-    // Read and allocate
-	if (stream == nullptr)
-    {
-        return -1;
-    }
-    char *lineptr = nullptr;
-    size_t len = 0;
-    ssize_t nread = 0;	FILE *stream = fopen(file_name, "r");
-	if (stream == nullptr)
-        return -1;
-
-    char *lineptr = nullptr;
-    size_t len = 0;
-    ssize_t nread = 0;
-
-    while ((nread = getline(&lineptr, &len, stream)) != -1)
-        gal_list_str_add(&list_of_files_to_skip, lineptr, nread);
-
-    gal_list_str_print(list_of_files_to_skip);
-
-    free(lineptr);
-    fclose(stream);
-
-    return 0;
+  free(lineptr);
+  return rval;
 }
-#endif
