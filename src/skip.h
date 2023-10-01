@@ -31,14 +31,14 @@
 #include <search.h>
 #include <remove.h>
 
-
+#ifndef USE_LINKED_LIST
 #define USE_LINKED_LIST 0
+#endif
 
-
-#define MAX_SKIP_FILES 9			/* maximum number of files to skip
-																doesn't make sense to have so many files */
-
-
+#ifndef MAX_SKIP_FILES
+#define MAX_SKIP_FILES 20			/* Maximum number of files to skip
+																 This is an arbitrary number */
+#endif
 
 typedef struct skip_node
 {
@@ -48,7 +48,7 @@ typedef struct skip_node
 } skip_node_t;
 
 
-#if USE_LINKED_LIST
+#ifdef USE_LINKED_LIST
 #include <gnuastro/list.h>
 int initialize_skipper_linklist(char *const file_name);
 void free_skipper_linklist(void);
