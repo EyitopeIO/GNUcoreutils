@@ -641,13 +641,10 @@ rm (char *const *file, struct rm_options const *x)
         bit_flags |= FTS_XDEV;
 
       FTS *fts = xfts_open (file, bit_flags, nullptr);
-#ifdef SKIPFILE_DEBUG_MODE
-      for (int i = 0; i < 10; i++)
-        fprintf(stderr, "skip file [%d]: %s\n", i, file[i]);
-#endif
+
       if (x->file_name)
         {
-          skipinit = initialize_skip(x, bit_flags);
+          skipinit = initialize_skip(x->file_name, bit_flags);
           if (skipinit)
             error (0, errno, "could not initialize skip list");
         }
@@ -665,7 +662,7 @@ rm (char *const *file, struct rm_options const *x)
                   rm_status = RM_ERROR;
                 }
 #ifdef SKIPFILE_DEBUG_MODE
-              fprintf(stderr, "fts_read: returned null so exiting the loop");
+              fprintf(stderr, "fts_read: returned null so exiting the loop\n");
 #endif
               break;
             }

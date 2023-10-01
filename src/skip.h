@@ -36,8 +36,8 @@
 #endif
 
 #ifndef MAX_SKIP_FILES
-#define MAX_SKIP_FILES 20			/* Maximum number of files to skip
-																 This is an arbitrary number */
+#define MAX_SKIP_FILES 100      /* Maximum number of files to skip
+                                   This is an arbitrary number */
 #endif
 
 typedef struct skip_node
@@ -47,16 +47,8 @@ typedef struct skip_node
 	struct skip_node *right;
 } skip_node_t;
 
-
-#ifdef USE_LINKED_LIST
-#include <gnuastro/list.h>
-int initialize_skipper_linklist(char *const file_name);
-void free_skipper_linklist(void);
-static int create_link_of_files(char *const file_name);
-#endif
-
 skip_node_t *search_skiptree(ino_t inode);
-int initialize_skip(struct rm_options const *options, int fts_flags);
+int initialize_skip(char *filename, int fts_flags);
 int should_be_skipped(ino_t inode);
 
 #endif

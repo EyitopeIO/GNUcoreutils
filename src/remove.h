@@ -85,7 +85,7 @@ struct rm_options
 enum RM_status
 {
   /* These must be listed in order of increasing seriousness. */
-  RM_OK,
+  RM_OK = 2,
   RM_USER_ACCEPTED,
   RM_USER_DECLINED,
   RM_ERROR,
