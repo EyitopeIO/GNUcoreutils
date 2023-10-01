@@ -19,14 +19,13 @@
 #include <skip.h>
 #include <xfts.h>
 
-
 static skip_node_t bst_global_root_node;
 
 static int create_bsearch_tree(char *skipfile, int fts_flags);
 static skip_node_t *insert_node(skip_node_t *root_node, ino_t inode);
 static skip_node_t *search_node(skip_node_t *root_node, ino_t inode);
 
-/* Insert node into binary search tree */
+/* Inserts a node into the binary search tree */
 static skip_node_t *insert_node(skip_node_t *root_node, ino_t inode)
 {
 	if (!root_node)
@@ -53,7 +52,7 @@ static skip_node_t *insert_node(skip_node_t *root_node, ino_t inode)
 	return root_node;
 }
 
-/* Search for node in binary search tree */
+/* Search for a node in binary search tree */
 static skip_node_t *search_node(skip_node_t *root_node, ino_t inode)
 {
 	if (!root_node)
@@ -68,7 +67,7 @@ static skip_node_t *search_node(skip_node_t *root_node, ino_t inode)
 	return search_node(root_node->right, inode);
 }
 
-/* Returns true if a the inode of a file in the skip list should not be
+/* Returns 0 if a the inode of a file in the skip list should not be
    removed. Of course removing the inode means deleting the file */
 int should_be_skipped(ino_t inode)
 {
@@ -83,8 +82,7 @@ int should_be_skipped(ino_t inode)
 	return 0;
 }
 
-/* Setup the binary search tree for the files specified in the skip
-   for the files specified in the skip file */
+/* Setup the binary search tree for the files specified in the skip file */
 int initialize_skip(char *filename, int fts_flags)
 {
   int bst = create_bsearch_tree(filename, fts_flags);
@@ -92,7 +90,7 @@ int initialize_skip(char *filename, int fts_flags)
   return !bst ? 0 : -1;
 }
 
-/* Reads skip file and create a binary search tree out of their inodes */
+/* Reads the skip file and creates a binary search tree out of their inodes */
 static int create_bsearch_tree(char *skipfile, int fts_flags)
 {
   struct stat file_info;
@@ -119,9 +117,12 @@ static int create_bsearch_tree(char *skipfile, int fts_flags)
                                       The last character may be EOF
                                       instead of newline */
 
-      if (!strcmp(lineptr, "."))   /* `.' is interpreted by the shell.
-                                      Plus it doesn't make sense to
-                                      `rm -rf ./` and then skip `./' */
+      if (!strcmp(lineptr, "."))   /* `.' is interpreted by the shell as
+                                      the current working directory, not
+                                      the application. Plus it doesn't
+                                      make sense to call `rm -rf ./` and
+                                      then specify `.' in skip file */
+
         {
           fprintf(stderr, "`.' found in skipfile. Nothing to do\n");
           rval = -1;
